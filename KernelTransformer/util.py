@@ -4,7 +4,7 @@ import torch.optim as optim
 
 from torch.autograd import Variable
 
-from cfg import Config
+from KernelTransformer.cfg import Config
 
 def enable_gpu(model, gpu=0):
     if gpu is not None and gpu < 0:
@@ -19,11 +19,8 @@ def enable_gpu(model, gpu=0):
     model.cuda()
     return model
 
-def create_variable(size):
-    if Config["is_cuda"]:
-        variable = Variable(torch.cuda.FloatTensor(*size))
-    else:
-        variable = Variable(torch.FloatTensor(*size))
+def create_variable(size, device):
+    variable = Variable(torch.cuda.FloatTensor(*size, device=device))
     return variable
 
 def build_optimizer(model, decay=10, base_lr=0.01, update="transform"):

@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from cfg import Config
-from SphereProjection import SphereProjection
+from KernelTransformer.cfg import Config
+from KernelTransformer.SphereProjection import SphereProjection
 
 
 class RowBilinear(nn.Module):
@@ -18,9 +18,9 @@ class RowBilinear(nn.Module):
         n_transform = kernel_shapes.size(0)
         weights = []
         self.pad = pad
-        for i in xrange(n_transform):
-            kH = kernel_shapes[i,0].item()
-            kW = kernel_shapes[i,1].item()
+        for i in range(n_transform):
+            kH = kernel_shapes[i, 0].item()
+            kW = kernel_shapes[i, 1].item()
             n_out = (kH + 2 * pad) * (kW + 2 * pad)
             weight = nn.Parameter(torch.Tensor(n_out, n_in))
             weights.append(weight)
@@ -125,33 +125,32 @@ class BilinearKTN(KTN):
                                       sphereW=sphereW,
                                       view_angle=fov,
                                       imgW=imgW)
-        center = sphereW / 2
+        center = sphereW // 2
         for i, param in enumerate(bilinear.weights):
             param.data.zero_()
-            tilt = i * tied_weights + tied_weights / 2
+            tilt = i * tied_weights + tied_weights // 2
             P = projection.buildP(tilt=tilt).transpose()
-            okH = self.kernel_shapes[i,0].item()
-            okW = self.kernel_shapes[i,1].item()
+            okH = self.kernel_shapes[i, 0].item()
+            okW = self.kernel_shapes[i, 1].item()
             okH += bilinear.pad * 2
             okW += bilinear.pad * 2
-
-            sH = tilt - okH / 2
-            sW = center - okW / 2
-            for y in xrange(okH):
+            sH = tilt - okH // 2
+            sW = center - okW // 2
+            for y in range(okH):
                 row = y + sH
                 if row < 0 or row >= sphereH:
                     continue
-                for x in xrange(okW):
+                for x in range(okW):
                     col = x + sW
                     if col < 0 or col >= sphereW:
                         continue
                     pixel = row * sphereW + col
-                    p = P[pixel]
+                    p = P[int(pixel)]
                     if p.nnz == 0:
                         continue
                     j = y * okW + x
-                    for k in xrange(p.shape[1]):
-                        param.data[j,k] = p[0,k]
+                    for k in range(p.shape[1]):
+                        param.data[j, k] = p[0, k]
 
 
 class ResidualKTN(BilinearKTN):
@@ -171,14 +170,14 @@ class ResidualKTN(BilinearKTN):
         okH, okW = self.kernel_shapes[row]
         x = self.res1(x, row)
 
-        x = x.view(-1, self.n_in, okH+4, okW+4)
+        x = x.view(-1, self.n_in, okH + 4, okW + 4)
         x = self.res2(self.activation(x))
-        x = x.view(-1, 1, okH+4, okW+4)
+        x = x.view(-1, 1, okH + 4, okW + 4)
         x = self.res3(self.activation(x))
 
-        x = x.view(-1, self.n_in, okH+2, okW+2)
+        x = x.view(-1, self.n_in, okH + 2, okW + 2)
         x = self.res4(self.activation(x))
-        x = x.view(-1, 1, okH+2, okW+2)
+        x = x.view(-1, 1, okH + 2, okW + 2)
         x = self.res5(self.activation(x))
 
         x = x.view(base.size())
@@ -199,4 +198,3 @@ KTN_ARCHS = {
     "bilinear": BilinearKTN,
     "residual": ResidualKTN,
 }
-

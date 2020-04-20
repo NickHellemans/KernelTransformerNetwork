@@ -1,11 +1,10 @@
-
 import sys
 import time
 
 import numpy
 import torch
 
-from cfg import Config
+from KernelTransformer.cfg import Config
 
 
 def run_validation(model, dataloader):
@@ -36,19 +35,19 @@ def run_validation(model, dataloader):
     model.train()
     return errs
 
+
 def row_errors(errs):
     if len(errs.shape) == 3:
         n_validation, n_out, H = errs.shape
-        for i in xrange(H):
-            row_err = errs[:,:,i]
+        for i in range(H):
+            row_err = errs[:, :, i]
             err = numpy.sqrt(row_err.mean())
             sys.stdout.write("Row {0}: {1:.3f}\n".format(i, err))
     elif len(errs.shape) == 2:
         n_validation, H = errs.shape
-        for i in xrange(H):
-            row_err = errs[:,i]
+        for i in range(H):
+            row_err = errs[:, i]
             err = numpy.sqrt(row_err.mean())
             sys.stdout.write("Row {0}: {1:.3f}\n".format(i, err))
     else:
         raise ValueError("Incorrect error shape.")
-

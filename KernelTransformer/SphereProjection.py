@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from scipy.sparse import csr_matrix
@@ -27,20 +26,22 @@ class SphereCoordinates(object):
     def _meshgrid(self):
         TX, TY = np.meshgrid(range(self.kernel_size), range(self.kernel_size))
 
-        center = self.kernel_size / 2
+        center = self.kernel_size // 2
+        # bug here?
         if self.kernel_size % 2 == 1:
             TX = TX.astype(np.float64) - center
             TY = TY.astype(np.float64) - center
         else:
             TX = TX.astype(np.float64) + 0.5 - center
             TY = TY.astype(np.float64) + 0.5 - center
+
         return TX, TY
 
     def _compute_radius(self, angle, TY):
         _angle = np.pi * angle / 180.
-        r = self.kernel_size/2 / np.tan(_angle/2)
-        R = np.sqrt(np.power(TY, 2) + r**2)
-        ANGy = np.arctan(-TY/r)
+        r = self.kernel_size / 2 / np.tan(_angle / 2)
+        R = np.sqrt(np.power(TY, 2) + r ** 2)
+        ANGy = np.arctan(-TY / r)
         return R, ANGy
 
     def generate_grid(self, **kwargs):
@@ -48,7 +49,7 @@ class SphereCoordinates(object):
             tilt = kwargs["tilt"]
             if not self.sphereH > tilt >= 0:
                 raise ValueError("Invalid polar displace")
-            rotate_y = (self.sphereH/2 - 0.5 - tilt) * np.pi / self.sphereH
+            rotate_y = (self.sphereH / 2 - 0.5 - tilt) * np.pi / self.sphereH
             rotate_x = 0.
         else:
             rotate_x = 0.
@@ -63,8 +64,8 @@ class SphereCoordinates(object):
 
     def _sample_points(self, angle_y, angle_x):
         # align center pixel with pixel on the image
-        Px = (angle_x + np.pi) / (2*np.pi) * self.sphereW
-        Py = (np.pi/2 - angle_y) / np.pi * self.sphereH - 0.5
+        Px = (angle_x + np.pi) / (2 * np.pi) * self.sphereW
+        Py = (np.pi / 2 - angle_y) / np.pi * self.sphereH - 0.5
 
         # Assume dead zone on the pole
         INDy = Py < 0
@@ -81,7 +82,7 @@ class SphereCoordinates(object):
 
     def direct_camera(self, rotate_y, rotate_x):
         angle_y = self._ANGy + rotate_y
-        INDn = np.abs(angle_y) > np.pi/2 # Padding great circle
+        INDn = np.abs(angle_y) > np.pi / 2  # Padding great circle
 
         X = np.sin(angle_y) * self._R
         Y = - np.cos(angle_y) * self._R
@@ -96,9 +97,9 @@ class SphereCoordinates(object):
         angle_y = np.arctan(X / RZY)
 
         INDx = angle_x <= -np.pi
-        angle_x[INDx] += 2*np.pi
+        angle_x[INDx] += 2 * np.pi
         INDx = angle_x > np.pi
-        angle_x[INDx] -= 2*np.pi
+        angle_x[INDx] -= 2 * np.pi
         return angle_y, angle_x
 
 
@@ -121,8 +122,8 @@ class SphereProjection(SphereCoordinates):
         row = []
         col = []
         data = []
-        for oy in xrange(Px.shape[0]):
-            for ox in xrange(Px.shape[1]):
+        for oy in range(Px.shape[0]):
+            for ox in range(Px.shape[1]):
                 ix = Px[oy, ox]
                 iy = Py[oy, ox]
                 c00, c01, c10, c11 = self._bilinear_coef(ix, iy)
@@ -144,7 +145,7 @@ class SphereProjection(SphereCoordinates):
                 row.append(oi)
                 col.append(i11)
                 data.append(c11)
-        P = csr_matrix((data, (row, col)), shape=(Px.size, self.sphereH*self.sphereW))
+        P = csr_matrix((data, (row, col)), shape=(Px.size, int(self.sphereH * self.sphereW)))
         return P
 
     def _bilinear_coef(self, ix, iy):
@@ -169,7 +170,6 @@ class SphereProjection(SphereCoordinates):
             iy1 = self.sphereH - 1
         if iy0 <= 0:
             iy0 = 0
-
         i00 = iy0 * self.sphereW + ix0
         i10 = iy0 * self.sphereW + ix1
         i01 = iy1 * self.sphereW + ix0
@@ -192,6 +192,5 @@ class SphereProjection(SphereCoordinates):
         return ix0, ix1, iy0, iy1
 
     def project(self, P, img):
-        output = np.stack([P.dot(img[:,:,c].ravel()).reshape(self.shape) for c in xrange(3)], axis=2)
+        output = np.stack([P.dot(img[:, :, c].ravel()).reshape(self.shape) for c in range(3)], axis=2)
         return output
-
