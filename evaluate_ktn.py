@@ -25,10 +25,10 @@ def load_ktnconv(source, transform, layer, **kwargs):
     if layer == LAYERS[0]:
         return ktnconv
 
-    model_name = "{0}{1}.transform.pt".format(transform, layer)
+    model_name = f"{transform}{layer}.transform.pt"
     model_path = os.path.join(MODEL_DIR, model_name)
     sys.stderr.write("Load transformation from {}\n".format(model_path))
-    ktn_state = torch.load(model_path)
+    ktn_state = torch.load(model_path, map_location=torch.device('cpu'))
     for name, params in ktnconv.named_parameters():
         if "src_kernel" in name or "src_bias" in name:
             ktn_state[name] = params
@@ -46,6 +46,7 @@ def main():
 
     if args.input is None:
         ktnconv = load_ktnconv(args.source, args.transform, args.target)
+        torch.save(ktnconv.state_dict(), "./models/ktn-model2.pt")
         _, valid_loader = prepare_dataset(args.target,
                                           src_cnn=args.source)
     else:
@@ -53,10 +54,12 @@ def main():
                               args.target,
                               transform=args.transform,
                               src=args.input)
+        torch.save(ktnconv.state_dict(), "./models/ktn-modelwithinput.pt")
         _, valid_loader = prepare_dataset(args.target,
                                           src=args.input,
                                           src_cnn=args.source)
 
+    
     if torch.cuda.is_available():
         sys.stderr.write("Enable GPU\n")
         ktnconv = enable_gpu(ktnconv, gpu=args.gpu)

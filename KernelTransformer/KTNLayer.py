@@ -131,7 +131,7 @@ def compute_kernelshape(kernel_size=3, sphereH=320, fov=65.5, imgW=640, dilation
                                   view_angle=fov,
                                   imgW=imgW)
 
-    n_transform = (sphereH - 1) // tied_weights + 1
+    n_transform = int((sphereH - 1) // tied_weights + 1)
     kernel_shapes = numpy.zeros((n_transform, 2), dtype=numpy.int64)
     dilations = numpy.zeros((n_transform, 2), dtype=numpy.int64)
     center = sphereW // 2

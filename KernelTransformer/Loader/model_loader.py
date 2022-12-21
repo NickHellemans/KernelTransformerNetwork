@@ -86,7 +86,6 @@ ARCHS = {
 
 
 class KTNNet(nn.Module):
-
     def __init__(self, dst, **kwargs):
         super(KTNNet, self).__init__()
 
@@ -112,17 +111,19 @@ class KTNNet(nn.Module):
 
     def update_group(self, group):
         for layer in self.layers:
-            layer.update_group(group)
-
+            layer.update_group(group) # type: ignore
 
 def load_src(target, network="pascal"):
-    path = os.path.join(MODEL_DIR, "{}.pt".format(network))
+   # path = os.path.join(MODEL_DIR, f"{network}{target}.transform.pt")
+    path = os.path.join(MODEL_DIR, f"vgg19-dcbb9e9d.pth")
     sys.stderr.write("Load source kernels for {0} from {1}\n".format(target, path))
-    weights = torch.load(path)
+    weights = torch.load(path, map_location=torch.device('cpu'))
 
-    key = "conv{}.weight".format(target)
+    #key = f"conv{target}.weight"
+    key = f"features.7.weight"
     kernel = weights[key]
-    key = "conv{}.bias".format(target)
+    #key = "conv{}.bias".format(target)
+    key = "features.7.bias"
     bias = weights[key]
     return kernel, bias
 
@@ -173,7 +174,7 @@ def load_ktnnet(network, dst, **kwargs):
             sys.stderr.write("Skip {}\n".format(model_path))
             continue
         sys.stderr.write("Load transformation from {}\n".format(model_path))
-        ktn_state = torch.load(model_path)
+        ktn_state = torch.load(model_path, map_location=torch.device('cpu'))
         for name, params in ktn_state.iteritems():
             if "src_kernel" in name or "src_bias" in name:
                 continue
@@ -181,7 +182,7 @@ def load_ktnnet(network, dst, **kwargs):
             ktn_state_dict[name] = params
 
     # Use default parameters 
-    for name, params in ktnnet.state_dict().iteritems():
+    for name, params in ktnnet.state_dict().items():
         if name not in ktn_state_dict:
             ktn_state_dict[name] = params
     ktnnet.load_state_dict(ktn_state_dict)
